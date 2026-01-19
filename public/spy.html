@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕵️ Spy Pro</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
+            color: #f1f5f9; min-height: 100vh; padding: 20px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .container { max-width: 450px; width: 100%; }
+        .screen { 
+            background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(20px);
+            padding: 35px 25px; border-radius: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            text-align: center; display: none;
+        }
+        .screen.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        h1, h2 { 
+            background: linear-gradient(135deg, #38bdf8, #7c3aed); 
+            background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+            margin-bottom: 25px; font-size: clamp(1.5rem, 4vw, 2.5rem);
+        }
+        .input-group { margin-bottom: 20px; }
+        input, select { 
+            width: 100%; padding: 16px; border-radius: 16px; border: 2px solid transparent;
+            background: rgba(51, 65, 85, 0.8); color: #f1f5f9; font-size: 16px;
+        }
+        input:focus, select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1); }
+        .btn { 
+            width: 100%; padding: 16px; margin: 8px 0; border-radius: 16px; border: none;
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        }
+        .btn-primary { background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(56, 189, 248, 0.6); }
+        .btn-secondary { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .stats { display: flex; justify-content: space-between; margin: 20px 0; color: #94a3b8; }
+        .result { 
+            margin: 25px 0; padding: 25px; background: rgba(51, 65, 85, 0.6); 
+            border-radius: 16px; border-left: 5px solid #38bdf8; min-height: 80px;
+            white-space: pre-line; line-height: 1.6;
+        }
+        .lobby-info { border-left-color: #10b981; background: rgba(34, 197, 94, 0.2); }
+        .error { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.2) !important; }
+        .spy { border-left-color: #f59e0b; background: rgba(254, 252, 232, 0.2); }
+        .success { border-left-color: #10b981; background: rgba(34, 197, 94, 0.2); }
+        .mode-toggle { display: flex; gap: 10px; margin-bottom: 20px; }
+        .mode-btn { flex: 1; background: rgba(51, 65, 85, 0.6); color: #f1f5f9; }
+        .mode-btn.active { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+        .hidden { display: none !important; }
+        .lobby-code { 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            color: white; padding: 16px; border-radius: 16px; font-size: 1.4rem;
+            font-weight: bold; margin: 15px 0; font-family: monospace; letter-spacing: 3px;
+        }
+        .players-info { 
+            background: rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; 
+            margin: 10px 0; font-size: 0.95rem;
+        }
+        .status { font-size: 0.9rem; margin-top: 10px; padding: 8px; border-radius: 8px; }
+        .status.connected { background: rgba(34, 197, 94, 0.2); color: #10b981; }
+        .status.disconnected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- НАЧАЛЬНЫЙ ЭКРАН -->
+        <div id="startScreen" class="screen active">
+            <h1>🕵️ Spy Pro</h1>
+            <div class="mode-toggle">
+                <button id="offlineBtn" class="btn mode-btn active">📱 Оффлайн</button>
+                <button id="onlineBtn" class="btn mode-btn">🌐 Онлайн</button>
+            </div>
+            <button id="joinBtnStart" class="btn btn-primary">🚪 Войти по коду</button>
+            <div class="status" id="serverStatus">⭕ Проверка...</div>
+        </div>
+
+        <!-- ОНЛАЙН ЛОББИ -->
+        <div id="onlineSetup" class="screen">
+            <h2>🌐 Создать лобби</h2>
+            <div class="input-group">
+                <input type="number" id="onlinePlayers" min="3" max="15" value="8" placeholder="Игроков (3-15)">
+            </div>
+            <div class="input-group">
+                <input type="number" id="onlineSpies" min="1" max="5" value="2" placeholder="Шпионов (1-5)">
+            </div>
+            <div class="input-group">
+                <select id="onlineCategory">
+                    <option value="clash">🎮 Clash Royale</option>
+                    <option value="naruto">🥷 Naruto</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="text" id="onlineWord" placeholder="🔐 Секретное слово">
+                <button id="onlineRandomBtn" class="btn btn-secondary">🎲 Случайно</button>
+            </div>
+            <button id="createLobbyBtn" class="btn btn-primary">🎮 Создать лобби</button>
+            
+            <!-- ✅ ЛОББИ ИНФО (изначально скрыто) -->
+            <div class="result lobby-info hidden" id="lobbyResult">
+                <div class="lobby-code" id="lobbyCode">XXXXXX</div>
+                <div class="players-info" id="playersInfo">👤 1/8 игроков</div>
+            </div>
+            
+            <!-- ✅ КНОПКА НАЧАТЬ ИГРУ (изначально скрыта) -->
+            <button id="startGameBtn" class="btn btn-secondary hidden">🚀 НАЧАТЬ ИГРУ</button>
+        </div>
+
+        <!-- ВХОД ПО КОДУ -->
+        <div id="joinScreen" class="screen">
+            <h2>🚪 Вход в лобби</h2>
+            <div class="input-group">
+                <input type="text" id="lobbyCodeInput" class="code-input" maxlength="6" placeholder="XXXXXX">
+            </div>
+            <button id="joinLobbyBtn" class="btn btn-primary">✅ Войти</button>
+            <div class="result" id="joinResult"></div>
+        </div>
+
+        <!-- ОФФЛАЙН -->
+        <div id="offlineSetup" class="screen">
+            <h2>📱 Оффлайн игра</h2>
+            <div class="input-group">
+                <input type="number" id="offlinePlayers" min="3" max="15" value="8" placeholder="Игроков">
+            </div>
+            <div class="input-group">
+                <input type="number" id="offlineSpies" min="1" max="5" value="2" placeholder="Шпионов">
+            </div>
+            <div class="input-group">
+                <select id="offlineCategory">
+                    <option value="clash">🎮 Clash Royale</option>
+                    <option value="naruto">🥷 Naruto</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="text" id="offlineWord" placeholder="🔐 Секретное слово">
+                <button id="offlineRandomBtn" class="btn btn-secondary">🎲 Случайно</button>
+            </div>
+            <button id="startOfflineBtn" class="btn btn-primary">🚀 Начать игру</button>
+        </div>
+
+        <!-- ИГРА -->
+        <div id="gameScreen" class="screen">
+            <h2 id="gameTitle">Игрок 1 из 8</h2>
+            <div class="stats">
+                <span id="gameProgress">1/8</span>
+                <span id="gameTimer">--:--</span>
+            </div>
+            <button id="showRoleBtn" class="btn btn-primary hidden pulse">👁️ Показать мою роль</button>
+            <div class="result" id="gameResult">👆 Нажмите кнопку, чтобы узнать свою роль!</div>
+            <button id="nextBtn" class="btn btn-secondary hidden">➡️ Следующий игрок</button>
+            <button id="resetBtn" class="btn btn-secondary hidden">🔄 Новая игра</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('🎮 Spy Pro - Полная версия загружается...');
+        
+        // Данные
+        const categories = {
+            clash: ['Knight','Archers','Goblins','Giant','P.E.K.K.A','Minions','Balloon','Witch','Barbarians'],
+            naruto: ['Naruto Uzumaki','Sasuke Uchiha','Sakura Haruno','Kakashi Hatake','Rock Lee','Neji Hyuga']
+        };
+        const categoryNames = { clash: 'Clash Royale', naruto: 'Naruto' };
+        const categoryEmojis = { clash: '🎮', naruto: '🥷' };
+
+        // Переменные
+        let socket = null;
+        let currentRoomId = null;
+        let currentLobby = null;
+        let isHost = false;
+        let offlineRoles = [], offlineCurrentPlayer = 0, offlinePlayersCount = 0;
+        let offlineGameStartTime = 0, offlineGameTimer = null;
+
+        // Основные функции
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            console.log('📱 Экран:', id);
+        }
+
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = msg;
+                el.className = 'result error';
+            }
+        }
+
+        function updateServerStatus(text) {
+            const statusEl = document.getElementById('serverStatus');
+            if (statusEl) {
+                statusEl.textContent = text;
+                statusEl.className = text.includes('🟢') ? 'status connected' : 'status';
+            }
+        }
+
+        // Socket.IO
+        function initSocket() {
+            if (typeof io === 'undefined') {
+                updateServerStatus('❌ Только оффлайн');
+                return false;
+            }
+
+            socket = io('http://localhost:3001');
+            
+            socket.on('connect', () => {
+                console.log('🟢 Подключен к серверу');
+                updateServerStatus('🟢 Сервер онлайн');
+            });
+
+            socket.on('lobbyCreated', (data) => {
+                console.log('✅ Лобби создано:', data.roomId);
+                currentRoomId = data.roomId;
+                currentLobby = data.lobby;
+                isHost = true;
+                
+                document.getElementById('lobbyCode').textContent = data.roomId;
+                document.getElementById('playersInfo').textContent = `👤 ${data.lobby.currentPlayers}/${data.lobby.maxPlayers}`;
+                document.getElementById('lobbyResult').classList.remove('hidden');
+                document.getElementById('createLobbyBtn').style.display = 'none';
+                document.getElementById('startGameBtn').style.display = 'block';
+            });
+
+            socket.on('joinedLobby', (data) => {
+                console.log('✅ Вошел в лобби:', data.roomId);
+                currentRoomId = data.roomId;
+                currentLobby = data.lobby;
+                showScreen('onlineSetup');
+                showError('joinResult', `✅ Лобби ${data.roomId}\n👥 ${data.lobby.currentPlayers}/${data.lobby.maxPlayers}`);
+            });
+
+            socket.on('playerUpdate', (data) => {
+                const playersInfo = document.getElementById('playersInfo');
+                if (playersInfo) playersInfo.textContent = `👤 ${data.players}/${data.maxPlayers}`;
+            });
+
+            socket.on('lobbyNotFound', (data) => {
+                showError('joinResult', `❌ Лобби ${data.code} не найдено`);
+            });
+
+            socket.on('yourRole', (data) => {
+                console.log('🎭 Роль:', data.isSpy ? 'ШПИОН' : 'МИРНЫЙ');
+                showScreen('gameScreen');
+                const result = document.getElementById('gameResult');
+                document.getElementById('showRoleBtn').classList.add('hidden');
+                
+                if (data.isSpy) {
+                    result.innerHTML = '🕵️<br><span style="font-size:3em;">ТЫ ШПИОН!</span><br>Узнай локацию!';
+                    result.className = 'result spy';
+                } else {
+                    result.innerHTML = `${categoryEmojis[data.category]}<br><span style="font-size:3em;">МИРНЫЙ</span><br><strong>${data.word}</strong>`;
+                    result.className = 'result success';
+                }
+            });
+
+            return true;
+        }
+
+        // Онлайн функции
+        function createLobby() {
+            if (!socket?.connected) {
+                alert('❌ Запустите сервер:\ncd spy\nnode server.js');
+                return;
+            }
+            const players = parseInt(document.getElementById('onlinePlayers').value);
+            const spies = parseInt(document.getElementById('onlineSpies').value);
+            const category = document.getElementById('onlineCategory').value;
+            const word = document.getElementById('onlineWord').value || categories[category][0];
+            
+            console.log('🎮 Создаем лобби:', {players, spies, category, word});
+            socket.emit('createLobby', { category, word, maxPlayers: players, maxSpies: spies });
+        }
+
+        function joinLobby() {
+            if (!socket?.connected) {
+                alert('❌ Запустите сервер');
+                return;
+            }
+            const code = document.getElementById('lobbyCodeInput').value.toUpperCase();
+            if (code.length !== 6) {
+                showError('joinResult', '❌ 6 символов');
+                return;
+            }
+            socket.emit('joinLobby', { code });
+        }
+
+        function startGame() {
+            if (!currentRoomId) {
+                alert('❌ Создайте лобби сначала!');
+                return;
+            }
+            console.log('🚀 НАЧИНАЕМ ИГРУ:', currentRoomId);
+            socket.emit('startGame', currentRoomId);
+        }
+
+        // Оффлайн функции
+        function startOfflineGame() {
+            offlinePlayersCount = parseInt(document.getElementById('offlinePlayers').value);
+            const spiesCount = parseInt(document.getElementById('offlineSpies').value);
+            
+            offlineRoles = new Array(offlinePlayersCount).fill('civil');
+            let spyIndexes = [];
+            while (spyIndexes.length < spiesCount) {
+                let r = Math.floor(Math.random() * offlinePlayersCount);
+                if (!spyIndexes.includes(r)) spyIndexes.push(r);
+            }
+            spyIndexes.forEach(i => offlineRoles[i] = 'spy');
+            
+            offlineCurrentPlayer = 0;
+            showScreen('gameScreen');
+            document.getElementById('gameTitle').textContent = `Игрок 1 из ${offlinePlayersCount}`;
+            document.getElementById('gameProgress').textContent = `1/${offlinePlayersCount}`;
+            document.getElementById('gameResult').textContent = '👆 Показать роль';
+            document.getElementById('showRoleBtn').classList.remove('hidden');
+        }
+
+        function showOfflineRole() {
+            document.getElementById('showRoleBtn').classList.add('hidden');
+            const role = offlineRoles[offlineCurrentPlayer];
+            const category = document.getElementById('offlineCategory').value;
+            const word = document.getElementById('offlineWord').value || categories[category][0];
+            
+            const result = document.getElementById('gameResult');
+            if (role === 'spy') {
+                result.innerHTML = '🕵️<br><span style="font-size:3em;">ТЫ ШПИОН!</span>';
+                result.className = 'result spy';
+            } else {
+                result.innerHTML = `${categoryEmojis[category]}<br><span style="font-size:3em;">МИРНЫЙ</span><br><strong>${word}</strong>`;
+                result.className = 'result success';
+            }
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function nextOfflinePlayer() {
+            offlineCurrentPlayer++;
+            if (offlineCurrentPlayer >= offlinePlayersCount) {
+                document.getElementById('gameResult').innerHTML = '🎉 ИГРА ОКОНЧЕНА!';
+                document.getElementById('resetBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('gameTitle').textContent = `Игрок ${offlineCurrentPlayer + 1} из ${offlinePlayersCount}`;
+                document.getElementById('gameProgress').textContent = `${offlineCurrentPlayer + 1}/${offlinePlayersCount}`;
+                document.getElementById('gameResult').textContent = '👆 Показать роль';
+                document.getElementById('showRoleBtn').classList.remove('hidden');
+                document.getElementById('nextBtn').classList.add('hidden');
+            }
+        }
+
+        function setRandomWord(selectId, inputId) {
+            const cat = document.getElementById(selectId).value;
+            const word = categories[cat][Math.floor(Math.random() * categories[cat].length)];
+            document.getElementById(inputId).value = word;
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ Spy Pro готов!');
+            
+            // Безопасная привязка кнопок
+            const bindButton = (id, handler) => {
+                const btn = document.getElementById(id);
+                if (btn) btn.onclick = handler;
+            };
+
+            bindButton('offlineBtn', () => showScreen('offlineSetup'));
+            bindButton('onlineBtn', () => { showScreen('onlineSetup'); initSocket(); });
+            bindButton('joinBtnStart', () => { showScreen('joinScreen'); initSocket(); });
+            bindButton('createLobbyBtn', createLobby);
+            bindButton('joinLobbyBtn', joinLobby);
+            bindButton('startGameBtn', startGame);
+            bindButton('startOfflineBtn', startOfflineGame);
+            bindButton('showRoleBtn', showOfflineRole);
+            bindButton('nextBtn', nextOfflinePlayer);
+            bindButton('resetBtn', () => showScreen('startScreen'));
+            bindButton('onlineRandomBtn', () => setRandomWord('onlineCategory', 'onlineWord'));
+            bindButton('offlineRandomBtn', () => setRandomWord('offlineCategory', 'offlineWord'));
+
+            updateServerStatus('⭕ Проверка...');
+        });
+    </script>
+</body>
+</html>
