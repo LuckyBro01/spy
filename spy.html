@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🕵️ Игра «Шпион» Pro - 2 Категории</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
+      color: #f1f5f9; min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 20px; line-height: 1.5;
+    }
+    .container { max-width: 420px; width: 100%; }
+    .game { 
+      background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(20px);
+      padding: 35px 25px; border-radius: 24px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+      text-align: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .game.hidden { display: none; }
+    h1 { 
+      margin-bottom: 25px; font-size: clamp(1.5rem, 4vw, 2rem);
+      background: linear-gradient(135deg, #38bdf8, #7c3aed);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .input-group { margin-bottom: 15px; }
+    input, select {
+      width: 100%; padding: 16px; border-radius: 16px; border: 2px solid transparent;
+      background: rgba(51, 65, 85, 0.8); color: #f1f5f9; font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+      background: rgba(51, 65, 85, 1);
+    }
+    input::placeholder { color: #94a3b8; }
+    .btn {
+      width: 100%; padding: 16px; margin: 8px 0; border-radius: 16px; border: none;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+    }
+    .btn-primary { background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: white; box-shadow: 0 8px 25px rgba(56, 189, 248, 0.4); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(56, 189, 248, 0.6); }
+    .btn-secondary { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4); }
+    .btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(245, 158, 11, 0.6); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .result {
+      margin: 25px 0; padding: 25px; font-size: clamp(1rem, 3vw, 1.1rem); min-height: 100px;
+      background: rgba(51, 65, 85, 0.6); border-radius: 16px; border-left: 5px solid #38bdf8;
+      white-space: pre-line; line-height: 1.6; position: relative;
+    }
+    .result.spy { border-left-color: #f59e0b; background: rgba(254, 252, 232, 0.2); }
+    .result.success { border-left-color: #10b981; background: rgba(34, 197, 94, 0.2); }
+    .result.naruto { border-left-color: #ec4899; background: rgba(236, 72, 153, 0.2); }
+    .error { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.2) !important; }
+    .stats { display: flex; justify-content: space-between; margin: 20px 0; font-size: 0.95rem; color: #94a3b8; }
+    .category-info { 
+      background: rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 12px; 
+      margin: 10px 0; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+      gap: 8px;
+    }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    @media (max-width: 480px) { body { padding: 10px; } .game { padding: 25px 20px; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .game { animation: fadeInUp 0.6s ease-out; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Экран настройки -->
+    <div class="game" id="setup">
+      <h1>🕵️ Игра «Шпион» Pro</h1>
+      
+      <div class="stats">
+        <span id="sampleLocation"></span>
+        <span>📱 Передавай телефон</span>
+      </div>
+
+      <div class="input-group">
+        <input type="number" id="players" min="3" max="15" placeholder="Игроков (3-15)" value="8" />
+      </div>
+      
+      <div class="input-group">
+        <input type="number" id="spies" min="1" max="5" placeholder="Шпионов (1-5)" value="2" />
+      </div>
+
+      <div class="input-group">
+        <select id="category">
+          <option value="clash">🎮 Clash Royale (карты)</option>
+          <option value="naruto">🥷 Naruto (персонажи)</option>
+        </select>
+      </div>
+      
+      <div class="input-group">
+        <input type="text" id="word" placeholder="🔐 Секретное слово (или пусто)" />
+      </div>
+
+      <button id="randomWordBtn" class="btn btn-secondary">
+        🎲 Случайный выбор категории
+      </button>
+      
+      <button id="startBtn" class="btn btn-primary">🚀 Начать игру</button>
+      
+      <div class="result" id="setupResult"></div>
+      
+      <div class="category-info" id="categoryPreview">
+        🎮 Clash Royale: Knight • Archers • Giant...
+      </div>
+    </div>
+
+    <!-- Экран игры -->
+    <div class="game hidden" id="game">
+      <h1 id="playerTitle">Игрок 1 из 8</h1>
+      
+      <div class="stats">
+        <span id="progress">0/8</span>
+        <span id="timer">--:--</span>
+      </div>
+
+      <div class="category-info" id="currentCategory">
+        🎮 Категория: Clash Royale
+      </div>
+
+      <button id="showBtn" class="btn btn-primary pulse">
+        👁️ Показать мою роль
+      </button>
+      
+      <div class="result" id="result">Нажмите кнопку, чтобы узнать свою роль!</div>
+      
+      <button id="nextBtn" class="btn btn-secondary hidden">
+        ➡️ Передать следующему игроку
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let roles = [], currentPlayer = 0, secretWord = "", playersCount = 0, spiesCount = 0;
+    let gameStartTime = 0, gameTimer = null, currentCategory = 'clash';
+    
+    // Категории слов (убрана математика)
+    const categories = {
+      clash: [
+        'Knight','Archers','Goblins','Giant','P.E.K.K.A','Minions','Balloon','Witch','Barbarians',
+        'Golem','Skeletons','Valkyrie','Bomber','Musketeer','Baby Dragon','Prince','Wizard',
+        'Mini P.E.K.K.A','Spear Goblins','Giant Skeleton','Hog Rider','Minion Horde','Ice Wizard',
+        'Royal Giant','Guards','Princess','Dark Prince','Three Musketeers','Lava Hound','Ice Spirit',
+        'Fire Spirit','Miner','Sparky','Bowler','Lumberjack','Battle Ram','Inferno Dragon',
+        'Ice Golem','Mega Minion','Dart Goblin','Goblin Gang','Electro Wizard','Elite Barbarians'
+      ],
+      naruto: [
+        'Naruto Uzumaki','Sasuke Uchiha','Sakura Haruno','Kakashi Hatake','Rock Lee','Neji Hyuga',
+        'Gaara','Temari','Kankuro','Hinata Hyuga','Shikamaru Nara','Ino Yamanaka','Choji Akimichi',
+        'Kiba Inuzuka','Shino Aburame','Tenten','Itachi Uchiha','Jiraiya','Tsunade','Orochimaru',
+        'Madara Uchiha','Hashirama Senju','Tobirama Senju','Minato Namikaze','Kushina Uzumaki'
+      ]
+    };
+
+    const categoryEmojis = {
+      clash: '🎮',
+      naruto: '🥷'
+    };
+
+    const categoryNames = {
+      clash: 'Clash Royale',
+      naruto: 'Naruto'
+    };
+
+    const categoryColors = {
+      clash: '#38bdf8',
+      naruto: '#ec4899'
+    };
+
+    // Инициализация
+    window.onload = function() {
+      document.getElementById('startBtn').addEventListener('click', startGame);
+      document.getElementById('randomWordBtn').addEventListener('click', setRandomWord);
+      document.getElementById('showBtn').addEventListener('click', showRole);
+      document.getElementById('nextBtn').addEventListener('click', nextPlayer);
+      document.getElementById('category').addEventListener('change', updateCategoryPreview);
+      
+      updateSampleLocation();
+      startLocationTimer();
+      updateCategoryPreview();
+    };
+
+    function updateCategoryPreview() {
+      currentCategory = document.getElementById('category').value;
+      const preview = document.getElementById('categoryPreview');
+      const samples = categories[currentCategory].slice(0, 4).join(' • ');
+      preview.innerHTML = `${categoryEmojis[currentCategory]} ${categoryNames[currentCategory]}: ${samples}...`;
+      preview.style.borderLeft = `4px solid ${categoryColors[currentCategory]}`;
+    }
+
+    function updateSampleLocation() {
+      const sample = document.getElementById('sampleLocation');
+      const words = categories[currentCategory];
+      const randomWord = words[Math.floor(Math.random() * words.length)];
+      sample.textContent = `${categoryEmojis[currentCategory]} Пример: ${randomWord}`;
+    }
+
+    function startLocationTimer() {
+      setInterval(updateSampleLocation, 3000);
+    }
+
+    function validateInputs() {
+      playersCount = parseInt(document.getElementById('players').value);
+      spiesCount = parseInt(document.getElementById('spies').value);
+      
+      if (!playersCount || playersCount < 3 || playersCount > 15) {
+        showError('setupResult', '❌ Игроков: 3-15');
+        return false;
+      }
+      
+      if (!spiesCount || spiesCount < 1 || spiesCount > Math.min(5, playersCount - 1)) {
+        showError('setupResult', '❌ Шпионов: 1-' + Math.min(5, playersCount - 1));
+        return false;
+      }
+      
+      return true;
+    }
+
+    function startGame() {
+      if (!validateInputs()) return;
+      
+      currentCategory = document.getElementById('category').value;
+      secretWord = document.getElementById('word').value.trim();
+      
+      if (secretWord === '') {
+        const words = categories[currentCategory];
+        secretWord = words[Math.floor(Math.random() * words.length)];
+      }
+
+      // Генерация ролей
+      roles = new Array(playersCount).fill('civil');
+      let indexes = [];
+      while (indexes.length < spiesCount) {
+        let r = Math.floor(Math.random() * playersCount);
+        if (!indexes.includes(r)) indexes.push(r);
+      }
+      indexes.forEach(i => roles[i] = 'spy');
+
+      currentPlayer = 0;
+      gameStartTime = Date.now();
+      
+      document.getElementById('setup').classList.add('hidden');
+      document.getElementById('game').classList.remove('hidden');
+      
+      document.getElementById('currentCategory').innerHTML = 
+        `${categoryEmojis[currentCategory]} Категория: ${categoryNames[currentCategory]}`;
+      document.getElementById('currentCategory').style.borderLeft = `4px solid ${categoryColors[currentCategory]}`;
+      
+      updatePlayerTitle();
+      startGameTimer();
+    }
+
+    function setRandomWord() {
+      currentCategory = document.getElementById('category').value;
+      const randomWord = categories[currentCategory][Math.floor(Math.random() * categories[currentCategory].length)];
+      document.getElementById('word').value = randomWord;
+      document.getElementById('setupResult').innerHTML = `🎲 Выбрано: <strong>${randomWord}</strong>`;
+      document.getElementById('setupResult').className = 'result success';
+    }
+
+    function updatePlayerTitle() {
+      document.getElementById('playerTitle').innerText = `Игрок ${currentPlayer + 1} из ${playersCount}`;
+      document.getElementById('progress').textContent = `${currentPlayer + 1}/${playersCount}`;
+      document.getElementById('result').innerText = '👆 Нажмите кнопку, чтобы узнать свою роль!';
+      document.getElementById('result').className = 'result';
+      document.getElementById('nextBtn').classList.add('hidden');
+      document.getElementById('showBtn').classList.remove('hidden');
+    }
+
+    function showRole() {
+      const result = document.getElementById('result');
+      document.getElementById('showBtn').classList.add('hidden');
+      
+      if (roles[currentPlayer] === 'spy') {
+        result.innerHTML = '🕵️<span style="font-size: 1.5em; display:block; margin: 10px 0;">Вы ШПИОН!</span>Персонажа нет. Узнайте по вопросам других.';
+        result.className = `result spy`;
+      } else {
+        result.innerHTML = `${categoryEmojis[currentCategory]}<span style="font-size: 1.5em; display:block; margin: 10px 0;">Вы МИРНЫЙ</span>Персонаж: <strong>${secretWord}</strong>`;
+        result.className = currentCategory === 'naruto' ? 'result naruto' : 'result success';
+      }
+      
+      document.getElementById('nextBtn').classList.remove('hidden');
+    }
+
+    function nextPlayer() {
+      currentPlayer++;
+      if (currentPlayer >= playersCount) {
+        endGame();
+        return;
+      }
+      updatePlayerTitle();
+    }
+
+    function endGame() {
+      clearInterval(gameTimer);
+      document.getElementById('game').classList.add('hidden');
+      document.getElementById('setup').classList.remove('hidden');
+      
+      const totalTime = Math.round((Date.now() - gameStartTime) / 1000);
+      document.getElementById('word').value = '';
+      document.getElementById('setupResult').innerHTML = 
+        `🎉 Роли розданы за ${totalTime}с!<br>${categoryEmojis[currentCategory]} ${categoryNames[currentCategory]}<br>Шпионов: ${spiesCount}<br>🔄 Готовы к новой игре?`;
+      document.getElementById('setupResult').className = 'result success';
+    }
+
+    function startGameTimer() {
+      const updateTimer = () => {
+        const elapsed = Math.round((Date.now() - gameStartTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        document.getElementById('timer').textContent = 
+          `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      };
+      updateTimer();
+      gameTimer = setInterval(updateTimer, 1000);
+    }
+
+    function showError(id, message) {
+      const el = document.getElementById(id);
+      el.textContent = message;
+      el.className = 'result error';
+    }
+  </script>
+</body>
+</html>
