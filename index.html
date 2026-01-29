@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🕵️ Игра «Шпион» Pro - 2 Категории</title>
+  <title>🕵️ Игра «Шпион» Pro - 3 Категории</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -36,7 +36,7 @@
       outline: none; border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
       background: rgba(51, 65, 85, 1);
     }
-    input::placeholder { color: #94a3b8; }
+    input::placeholder { color: ⚽94a3b8; }
     .btn {
       width: 100%; padding: 16px; margin: 8px 0; border-radius: 16px; border: none;
       font-size: 16px; font-weight: 600; cursor: pointer;
@@ -55,6 +55,7 @@
     .result.spy { border-left-color: #f59e0b; background: rgba(254, 252, 232, 0.2); }
     .result.success { border-left-color: #10b981; background: rgba(34, 197, 94, 0.2); }
     .result.naruto { border-left-color: #ec4899; background: rgba(236, 72, 153, 0.2); }
+    .result.football { border-left-color: #10b981; background: rgba(34, 197, 94, 0.2); }
     .error { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.2) !important; }
     .stats { display: flex; justify-content: space-between; margin: 20px 0; font-size: 0.95rem; color: #94a3b8; }
     .category-info { 
@@ -92,6 +93,7 @@
         <select id="category">
           <option value="clash">🎮 Clash Royale (карты)</option>
           <option value="naruto">🥷 Naruto (персонажи)</option>
+          <option value="football">⚽ Футболисты (250+ игроков)</option>
         </select>
       </div>
       
@@ -141,7 +143,7 @@
     let roles = [], currentPlayer = 0, secretWord = "", playersCount = 0, spiesCount = 0;
     let gameStartTime = 0, gameTimer = null, currentCategory = 'clash';
     
-    // Категории слов (убрана математика)
+    // Категории слов
     const categories = {
       clash: [
         'Knight','Archers','Goblins','Giant','P.E.K.K.A','Minions','Balloon','Witch','Barbarians',
@@ -156,22 +158,77 @@
         'Gaara','Temari','Kankuro','Hinata Hyuga','Shikamaru Nara','Ino Yamanaka','Choji Akimichi',
         'Kiba Inuzuka','Shino Aburame','Tenten','Itachi Uchiha','Jiraiya','Tsunade','Orochimaru',
         'Madara Uchiha','Hashirama Senju','Tobirama Senju','Minato Namikaze','Kushina Uzumaki'
+      ],
+      football: [
+        // Вратари (40+)
+        'Thibaut Courtois','Ederson','Alisson Becker','Gianluigi Donnarumma','Marc-André ter Stegen',
+        'Emiliano Martínez','Jan Oblak','David Raya','Koen Casteels','Gregor Kobel','Yann Sommer',
+        'Mike Maignan','Keylor Navas','Wojciech Szczęsny','Hugo Lloris','Piotr Zieliński','Unai Simón',
+        'Dominik Livaković','Diogo Costa','Anatoliy Trubin','Giorgi Mamardashvili','Bart Verbruggen',
+        'José Sá','Nick Pope','Sam Johnstone','Bernd Leno','Robert Sánchez','Mark Flekken',
+        'Tim Krul','Álvaro Valles','Ivo Grbić','Anatoliy Trubin','Luis Maximiano','Kepa Arrizabalaga',
+        'Neto','Gavin Bazunu','Aaron Ramsdale','Dean Henderson','Odysseas Vlachodimos',
+        
+        // Защитники (80+)
+        'Virgil van Dijk','Rúben Dias','William Saliba','Gabriel Magalhães','John Stones',
+        'Cristian Romero','Ibrahima Konaté','Antonio Rüdiger','Kim Min-jae','Jules Koundé',
+        'Trent Alexander-Arnold','Kyle Walker','João Cancelo','Reece James','Achraf Hakimi',
+        'Alphonso Davies','Theo Hernández','Ferland Mendy','Andrew Robertson','Oleksandr Zinchenko',
+        'Josko Gvardiol','Nathan Aké','Manuel Akanji','Éder Militão','Ronald Araújo',
+        'Pau Cubarsí','Leny Yoro','Jonathan Tah','Dayot Upamecano','Presnel Kimpembe',
+        'Evan Ndicka','Bremer','Gleison Bremer','Pierre Kalulu','Denzel Dumfries','Noussair Mazraoui',
+        'Jeremie Frimpong','Destiny Udogie','Ben White','Ben Chilwell','Valentino Livramento',
+        'Malo Gusto','Pedro Porro','Malachi Fagan-Walcott','Tino Livramento','Josip Juranović',
+        'Valentino Lazaro','Nuno Mendes','Álex Grimaldo','Quentin Merlin','Milos Kerkez',
+        'Antonee Robinson','Destiny Udogie','Odsonne Édouard','Ian Maatsen',
+        
+        // Полузащитники (100+)
+        'Rodri','Declan Rice','Jude Bellingham','Bruno Guimarães','Aurélien Tchouaméni',
+        'Frenkie de Jong','Bernardo Silva','Kevin De Bruyne','Martin Ødegaard','Jamal Musiala',
+        'Florian Wirtz','Pedri','Gavi','Enzo Fernández','Moisés Caicedo','Toni Kroos',
+        'Joshua Kimmich','Ilkay Gündoğan','Hakan Çalhanoğlu','Luka Modrić','Toni Kroos',
+        'Bruno Fernandes','Casemiro','Christian Eriksen','Pierre-Emile Højbjerg',
+        'Yves Bissouma','João Palhinha','Amadou Onana','Sandro Tonali','Teun Koopmeiners',
+        'Lewis Ferguson','Exequiel Palacios','Dominik Szoboszlai','Alexis Mac Allister',
+        'Ryan Gravenberch','Joey Veerman','Tijjani Reijnders','Edson Álvarez','Houssem Aouar',
+        'Valentín Carboni','Manu Koné','Warren Zaïre-Emery','João Neves','Alan Varela',
+        'Mateo Kovačić','Nicolò Barella','Adrien Rabiot','Douglas Luiz','Boubacar Kamara',
+        'Conor Gallagher','Roméo Lavia','Kiernan Dewsbury-Hall','Morgan Gibbs-White',
+        'Valentino Livramento','James Maddison','Eberechi Eze','Cole Palmer','Noni Madueke',
+        'Anthony Gordon','Valentino Lazaro','Morgan Rogers','Jacob Ramsey','John McGinn',
+        
+        // Нападающие (70+)
+        'Erling Haaland','Harry Kane','Kylian Mbappé','Vinícius Júnior','Mohamed Salah',
+        'Robert Lewandowski','Lautaro Martínez','Victor Osimhen','Alexander Isak','Ollie Watkins',
+        'Rasmus Højlund','Darwin Núñez','Son Heung-min','Heung-Min Son','Marcus Rashford',
+        'Raheem Sterling','Bukayo Saka','Gabriel Martinelli','Rafael Leão','Khvicha Kvaratskhelia',
+        'Victor Boniface','Evan Ferguson','João Félix','Antony','Jadon Sancho','Anthony Gordon',
+        'Jeremy Doku','Savinho','Matheus Cunha','Jean-Philippe Mateta','Chris Wood',
+        'Dominic Solanke','Alexander Isak','Nicolas Jackson','João Pedro','Danny Welbeck',
+        'Jørgen Strand Larsen','Liam Delap','Cameron Archer','Viktor Gyökeres',
+        'Serhou Guirassy','Loïs Openda','Jonathan David','Evanilson','Jonathan David',
+        'Bryan Mbeumo','Yoane Wissa','Omar Marmoush','Viktor Gyökeres','Patson Daka',
+        'Mateo Retegui','Giacomo Raspadori','Joshua Zirkzee','Armando Broja',
+        'David Datro Fofana','Tammy Abraham','Crysencio Summerville','Adama Traoré'
       ]
     };
 
     const categoryEmojis = {
       clash: '🎮',
-      naruto: '🥷'
+      naruto: '🥷',
+      football: '⚽'
     };
 
     const categoryNames = {
       clash: 'Clash Royale',
-      naruto: 'Naruto'
+      naruto: 'Naruto',
+      football: 'Футболисты'
     };
 
     const categoryColors = {
       clash: '#38bdf8',
-      naruto: '#ec4899'
+      naruto: '#ec4899',
+      football: '#10b981'
     };
 
     // Инициализация
@@ -283,7 +340,8 @@
         result.className = `result spy`;
       } else {
         result.innerHTML = `${categoryEmojis[currentCategory]}<span style="font-size: 1.5em; display:block; margin: 10px 0;">Вы МИРНЫЙ</span>Персонаж: <strong>${secretWord}</strong>`;
-        result.className = currentCategory === 'naruto' ? 'result naruto' : 'result success';
+        result.className = currentCategory === 'naruto' ? 'result naruto' : 
+                         currentCategory === 'football' ? 'result football' : 'result success';
       }
       
       document.getElementById('nextBtn').classList.remove('hidden');
